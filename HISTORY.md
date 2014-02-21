@@ -1,3 +1,7 @@
+## HEAD (branch: resque-2)
+
+* Test against resque v2.0
+
 ## 0.4.4 (2014-02-21)
 
 * Add `enqueued?` and `loner_locked?` helper methods.
