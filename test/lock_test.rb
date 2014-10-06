@@ -178,6 +178,14 @@ class LockTest < Minitest::Test
     assert !SlowJob.enqueued?, 'no loner lock key should hae been created'
   end
 
+  def test_loner_job_locked_depending_on_args
+    assert Resque.enqueue(LonelyWithArgsJob)
+    assert Resque.enqueue(LonelyWithArgsJob), 'should enqueue if arg not given'
+    assert Resque.enqueue(LonelyWithArgsJob, true)
+    assert !Resque.enqueue(LonelyWithArgsJob, true), 'should not enqueue second job if arg given'
+    assert_equal 3, Resque.size(:test), '3 job should be enqueued'
+  end
+
   def test_loner_job_should_not_be_enqued_if_already_running
     Resque.enqueue(LonelyJob)
     thread = Thread.new { @worker.process }
