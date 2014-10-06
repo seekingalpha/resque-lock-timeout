@@ -114,7 +114,7 @@ module Resque
       #
       # @return [Boolean] true if the job is locked by someone
       def loner_locked?(*args)
-        locked?(*args) || (loner && enqueued?(*args))
+        locked?(*args) || (loner(*args) && enqueued?(*args))
       end
 
       # Convenience method to check if job is locked and lock did not expire.
@@ -169,7 +169,7 @@ module Resque
       #
       # @param [Array] args job arguments
       def before_enqueue_lock(*args)
-        if loner
+        if loner(*args)
           if locked?(*args)
             # Same job is currently running
             loner_enqueue_failed(*args)
@@ -277,7 +277,7 @@ module Resque
         lock_until = acquire_lock!(*args)
 
         # Release loner lock as job has been dequeued
-        release_loner_lock!(*args) if loner
+        release_loner_lock!(*args) if loner(*args)
 
         # Abort if another job holds the lock.
         return unless lock_until
