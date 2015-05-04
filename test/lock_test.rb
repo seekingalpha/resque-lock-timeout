@@ -212,6 +212,14 @@ class LockTest < Minitest::Test
     assert_equal 1, $success, 'One job should increment success'
   end
 
+  def test_loner_job_should_fail_quietly_when_enqueued_with_Job_create_while_locked
+    Resque.inline = true
+    LonelyTimeoutJob.acquire_lock!
+    response = Resque::Job.create(:test, LonelyTimeoutJob)
+    Resque.inline = false
+    assert_equal false, response
+  end
+
   def test_loner_job_should_get_enqueued_if_timeout_expired
     Resque.enqueue(LonelyTimeoutExpiringJob)
     thread = Thread.new { @worker.process }

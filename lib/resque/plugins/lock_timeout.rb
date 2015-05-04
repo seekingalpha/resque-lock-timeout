@@ -49,6 +49,8 @@ module Resque
     #     end
     #   end
     module LockTimeout
+      @lock_until = nil
+
       # @abstract You may override to implement a custom identifier,
       #           you should consider doing this if your job arguments
       #           are many/long or may not cleanly cleanly to strings.
@@ -266,25 +268,28 @@ module Resque
       # @param [Array] args job arguments
       def refresh_lock!(*args)
         now = Time.now.to_i
-        lock_until = now + lock_timeout(*args)
-        lock_redis.set(redis_lock_key(*args), lock_until)
+        @lock_until = now + lock_timeout(*args)
+        lock_redis.set(redis_lock_key(*args), @lock_until)
+      end
+
+      def before_perform_lock(*args)
+        @lock_until = acquire_lock!(*args)
+
+        # Release loner lock as job has been dequeued
+        release_loner_lock!(*args) if loner(*args)
+
+        # Abort if another job holds the lock.
+        raise Resque::Job::DontPerform unless @lock_until
       end
 
       # Where the magic happens.
       #
       # @param [Array] args job arguments
       def around_perform_lock(*args)
-        lock_until = acquire_lock!(*args)
-
-        # Release loner lock as job has been dequeued
-        release_loner_lock!(*args) if loner(*args)
-
-        # Abort if another job holds the lock.
-        return unless lock_until
-
         begin
           yield
         ensure
+          lock_until, @lock_until = @lock_until, nil
           # Release the lock on success and error. Unless a lock_timeout is
           # used, then we need to be more careful before releasing the lock.
           now = Time.now.to_i
