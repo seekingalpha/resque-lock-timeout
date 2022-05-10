@@ -13,9 +13,11 @@ class LockTest < Minitest::Test
   end
 
   def test_version
-    major, minor, patch = Resque::Version.split('.')
-    assert_equal 1, major.to_i
-    assert minor.to_i >= 7
+    major, minor, patch = Resque::VERSION.split('.')
+    assert_includes [1, 2], major.to_i
+    if major.to_i == 1
+      assert minor.to_i >= 7, 'expect at least Resque 1.7'
+    end
   end
 
   def test_can_acquire_lock
