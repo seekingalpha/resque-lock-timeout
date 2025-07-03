@@ -61,7 +61,9 @@ module Resque
       # @param [Array] args job arguments
       # @return [String, nil] job identifier
       def identifier(*args)
-        args.join('-')
+        args.map do |arg|
+          arg.is_a?(Enumerable) ? "[#{identifier(*arg)}]" : arg.to_s
+        end.join('-')
       end
 
       # Override to fully control the redis object used for storing
